@@ -75,9 +75,9 @@ class Dm14Query:
         self._pgn = j1939.ParameterGroupNumber.PGN.DM14
         pointer = self.address.to_bytes(length=4, byteorder="little")
         data = []
-        data.append(self.object_count)
+        data.append(self.object_count & 0xFF)
         data.append(
-            (self.direct << 4) + (self.command.value << 1) + 1
+            ((self.object_count >> 3) & 0xE0) + (self.direct << 4) + (self.command.value << 1) + 1
         )  # (SAE reserved = 1)
         for octet in pointer:
             data.append(octet)
@@ -137,7 +137,7 @@ class Dm14Query:
                         )
                     )
         else:
-            length = data[0]
+            length = data[0] + ((data[1] & 0xE0) << 3)
             if seed == 0xFFFF and length == self.object_count:
                 self._wait_for_data()
             else:
@@ -172,7 +172,6 @@ class Dm14Query:
         if pgn != j1939.ParameterGroupNumber.PGN.DM16 or sa != self._dest_address:
             return
         length = min(data[0], len(data) - 1)
-        # assert object_count == self.object_count
         self.mem_data = data[1 : length + 1]
         self._ca.unsubscribe(self._parse_dm16)
         self._ca.subscribe(self._parse_dm15)
@@ -275,6 +274,7 @@ class Dm14Query:
         self.command = Command.WRITE
         self.bytes = self._values_to_bytes(values)
         self.object_count = len(values)
+        assert self.object_count <= 1784
         self._ca.subscribe(self._parse_dm15)
         self._send_dm14(7)
         self.state = QueryState.WAIT_FOR_SEED

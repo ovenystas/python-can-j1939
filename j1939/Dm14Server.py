@@ -109,10 +109,10 @@ class DM14Server:
         ):
             self._send_dm15(
                 self.length,
-                data[1] >> 4,
+                (data[1] >> 4) & 0x1,
                 j1939.Dm15Status.OPERATION_FAILED.value,
                 j1939.ResponseState.SEND_ERROR,
-                data[0],
+                data[0] + ((data[1] & 0xE0) << 3),
                 sa,
                 j1939.ParameterGroupNumber.PGN.DM15,
                 self.error if self.error != 0x00 else 0x2,
@@ -122,7 +122,7 @@ class DM14Server:
             return
 
         self.length = len(data)
-        self.direct = data[1] >> 4
+        self.direct = (data[1] >> 4) & 0x1
 
         match self.state:
             case ResponseState.IDLE:
@@ -130,10 +130,9 @@ class DM14Server:
                 self.sa = sa
                 self.status = j1939.Dm15Status.PROCEED.value
                 self.address = data[2 : (self.length - 2)]
-                self.direct = data[1] >> 4
                 self.command = ((data[1] - 1) & 0x0F) >> 1
                 self.pointer_type = (data[1] >> 4) & 0x1
-                self.object_count = data[0]
+                self.object_count = data[0] + ((data[1] & 0xE0) << 3)
                 self.access_level = (data[self.length - 1] << 8) + data[self.length - 2]
                 self.data = data
                 if self._key_from_seed is not None:
@@ -154,7 +153,7 @@ class DM14Server:
                 self.length = len(data)
                 self.address = data[2 : (self.length - 2)]
                 self.command = ((data[1] - 1) & 0x0F) >> 1
-                self.object_count = data[0]
+                self.object_count = data[0] + ((data[1] & 0xE0) << 3)
                 self.key = (data[self.length - 1] << 8) + data[self.length - 2]
                 self.data = data
                 self.state = ResponseState.SEND_PROCEED
@@ -204,6 +203,7 @@ class DM14Server:
 
             case ResponseState.SEND_PROCEED:
                 data[0] = object_count
+                data[1] += (object_count >> 3) & 0xE0
 
             case ResponseState.SEND_OPERATION_COMPLETE:
                 self.command = j1939.Command.OPERATION_COMPLETED.value
