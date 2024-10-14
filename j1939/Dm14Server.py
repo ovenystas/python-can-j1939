@@ -109,7 +109,7 @@ class DM14Server:
         ):
             self._send_dm15(
                 self.length,
-                (data[1] >> 4) & 0x1,
+                data[1] >> 4,
                 j1939.Dm15Status.OPERATION_FAILED.value,
                 j1939.ResponseState.SEND_ERROR,
                 data[0] + ((data[1] & 0xE0) << 3),
@@ -122,7 +122,7 @@ class DM14Server:
             return
 
         self.length = len(data)
-        self.direct = (data[1] >> 4) & 0x1
+        self.direct = data[1] >> 4
 
         match self.state:
             case ResponseState.IDLE:
@@ -130,6 +130,7 @@ class DM14Server:
                 self.sa = sa
                 self.status = j1939.Dm15Status.PROCEED.value
                 self.address = data[2 : (self.length - 2)]
+                self.direct = data[1] >> 4
                 self.command = ((data[1] - 1) & 0x0F) >> 1
                 self.pointer_type = (data[1] >> 4) & 0x1
                 self.object_count = data[0] + ((data[1] & 0xE0) << 3)
