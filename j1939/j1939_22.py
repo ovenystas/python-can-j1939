@@ -728,6 +728,7 @@ class J1939_22:
         self.__send_tp_cm(src_address, dest_address, self.TpControlType.CTS, session_num, 0xFFFFFF, next_packet, num_segments_that_can_be_sent, request_code, pgn_value)
 
     def __send_tp_eom_status(self, src_address, dest_address, session_num, message_size, num_segments, pgn_value, size_of_assurance_data=0, adt=Adt.NO_ADT):
+        time.sleep(0.02)
         self.__send_tp_cm(src_address, dest_address, self.TpControlType.EOM_STATUS, session_num, message_size, num_segments, size_of_assurance_data, adt, pgn_value)
 
     def __send_tp_eom_ack(self, src_address, dest_address, session_num, message_size, num_segments, pgn_value):
