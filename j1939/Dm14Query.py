@@ -142,7 +142,7 @@ class Dm14Query:
                 self._wait_for_data()
             else:
                 if self.state is QueryState.WAIT_FOR_OPER_COMPLETE:
-                    assert status is Command.OPERATION_COMPLETED.value
+                    assert status is Dm15Status.OPERATION_COMPLETE.value
                     self._send_operation_complete()
                     self.state = QueryState.IDLE
                     self.data_queue.put(self.mem_data)
@@ -239,6 +239,7 @@ class Dm14Query:
         self.state = QueryState.WAIT_FOR_SEED
         # wait for operation completed DM15 message
         raw_bytes = self.data_queue.get(block=True, timeout=1)
+        self._ca.unsubscribe(self._parse_dm15)
         for _ in range(self.exception_queue.qsize()):
             raise self.exception_queue.get(block=False, timeout=1)
         if raw_bytes:
@@ -287,6 +288,9 @@ class Dm14Query:
             if self.state is QueryState.WAIT_FOR_SEED:
                 raise RuntimeError("No response from server")
             pass  # expect empty queue for write
+        finally:
+            self._ca.unsubscribe(self._parse_dm15)
+
 
     def set_seed_key_algorithm(self, algorithm: callable) -> None:
         """
